@@ -54,7 +54,16 @@ try:
     - MATCH relationships in ANY direction: (a)-[r]-(b)
     - CRITICAL: Do NOT use exact string matching. 
     - ALWAYS use 'toLower(n.name) CONTAINS toLower("value")' for names.
-      Example: Instead of {{name: 'NVIC'}}, use toLower(n.name) CONTAINS 'nvic'
+    
+    - *** DATA MODEL HINT (VERY IMPORTANT) ***: 
+      Attributes like 'size', 'address', or 'frequency' might NOT be properties. 
+      They might be SEPARATE NODES connected to the main component.
+      
+      Example Search Pattern:
+      MATCH (n)-[]-(neighbor) 
+      WHERE toLower(n.name) CONTAINS 'sram' 
+      RETURN n, neighbor
+      
     - Return ONLY the Cypher query.
     
     Schema: {schema}
