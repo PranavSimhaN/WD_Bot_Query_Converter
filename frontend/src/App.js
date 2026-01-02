@@ -1,10 +1,8 @@
 import React from 'react';
-import QueryBox from './components/QueryBox';
+import ChatApp from './components/ChatApp';
 
-export default function App(){
+export default function App() {
   return (
-    <div>
-      <QueryBox />
-    </div>
+    <ChatApp />
   );
 }
