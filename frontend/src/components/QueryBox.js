@@ -16,7 +16,16 @@ export default function QueryBox() {
       const resp = await axios.post('/api/kg/query', { userQuestion: q });
       setAnswer(resp.data);
     } catch (err) {
-      setError(err.response?.data?.error || err.message);
+      let errMsg = err.message;
+      if (err.response?.data?.error) {
+        const backendError = err.response.data.error;
+        if (typeof backendError === 'object') {
+          errMsg = backendError.message || JSON.stringify(backendError);
+        } else {
+          errMsg = String(backendError);
+        }
+      }
+      setError(errMsg);
     } finally {
       setLoading(false);
     }

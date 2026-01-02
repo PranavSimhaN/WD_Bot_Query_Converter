@@ -11,7 +11,15 @@ from dotenv import load_dotenv # <--- NEW IMPORT
 load_dotenv()
 
 # Check if key exists
-if not os.getenv("GROQ_API_KEY"):
+api_key = os.getenv("GROQ_API_KEY")
+if not api_key or api_key == "mock":
+    print(json.dumps({
+        "answer": "🔒 MOCK MODE: Groq API Key is missing or set to 'mock'. This is a simulated response indicating the system is connected.",
+        "cypher": "MATCH (n) RETURN n LIMIT 5 // Mock Query"
+    }))
+    sys.exit(0)
+
+if not api_key:
     print(json.dumps({"answer": "❌ Error: Missing GROQ_API_KEY in .env file"}))
     sys.exit(1)
 
