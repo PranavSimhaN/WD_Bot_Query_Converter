@@ -4,6 +4,8 @@ services:
     image: neo4j:5.9
     environment:
       - NEO4J_AUTH=neo4j/password123
+      - NEO4J_PLUGINS=["apoc"] 
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
     ports:
       - '7474:7474'
       - '7687:7687'
