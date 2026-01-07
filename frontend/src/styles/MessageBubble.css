@@ -82,6 +82,7 @@
   align-items: center;
   gap: 4px;
   opacity: 0.8;
+  color: inherit;
 }
 
 .toggle-btn:hover {
