@@ -50,30 +50,44 @@ try:
 
     llm = ChatGroq(
         groq_api_key=os.environ.get("GROQ_API_KEY"),
-        model_name="llama-3.3-70b-versatile",
+        model_name=os.environ.get("LLM_MODEL", "llama-3.3-70b-versatile"),
         temperature=0
     )
 
     # 5. PROMPT
     CYPHER_GENERATION_TEMPLATE = """
     Task: Generate Cypher statement to query a graph database.
+    
+    *** SCHEMA EXPLANATION (READ CAREFULLY) ***
+    - The database uses a generic relationship label: :RELATION
+    - The semantic MEANING of the connection is stored in the 'type' property of the RELATIONSHIP itself.
+    - Structure: (NodeA)-[r:RELATION {{type: 'meaning'}}]->(NodeB)
+
     Instructions:
-    - Use only the node labels and relationship types present in the schema.
-    - MATCH relationships in ANY direction: (a)-[r]-(b)
-    - CRITICAL: Do NOT use exact string matching. 
-    - ALWAYS use 'toLower(n.name) CONTAINS toLower("value")' for names.
+    1. Use ONLY the node labels present in the schema (likely :Entity).
+    2. ALWAYS match relationships using the variable 'r': -[r:RELATION]-
+    3. FILTER using `r.type` (NOT n.type or val.type).
+       - CORRECT: WHERE r.type = 'frequency'
+       - WRONG:   WHERE val.type = 'frequency'
+    4. CASE INSENSITIVITY: 
+       - ALWAYS use `toLower(n.name) CONTAINS toLower("user_input")` for finding nodes.
     
-    - *** DATA MODEL HINT (VERY IMPORTANT) ***: 
-      Attributes like 'size', 'address', or 'frequency' might NOT be properties. 
-      They might be SEPARATE NODES connected to the main component.
-      
-      Example Search Pattern:
-      MATCH (n)-[]-(neighbor) 
-      WHERE toLower(n.name) CONTAINS 'sram' 
-      RETURN n, neighbor
-      
-    - Return ONLY the Cypher query.
-    
+    Examples:
+    - "What is the frequency of lpuart1?"
+      MATCH (n)-[r:RELATION]-(val) 
+      WHERE toLower(n.name) CONTAINS 'lpuart1' AND r.type = 'frequency' 
+      RETURN val.name
+
+    - "What is the size of sram?"
+      MATCH (n)-[r:RELATION]-(val) 
+      WHERE toLower(n.name) CONTAINS 'sram' AND r.type = 'size' 
+      RETURN val.name
+
+    - "What is connected to sysbus?"
+      MATCH (n)-[r:RELATION]-(val) 
+      WHERE toLower(n.name) CONTAINS 'sysbus' 
+      RETURN val.name, r.type
+
     Schema: {schema}
     Question: {question}
     Cypher Query:"""
@@ -83,12 +97,36 @@ try:
         template=CYPHER_GENERATION_TEMPLATE
     )
 
+    # NEW: QA Prompt to ensure Markdown formatting
+    QA_PROMPT_TEMPLATE = """You are a helpful AI assistant answering questions about a computer system configuration based on graph database results.
+
+    Use the following context to answer the user's question.
+    Context: {context}
+
+    Instructions:
+    1. Answer the question directly and clearly.
+    2. Use **Markdown** formatting:
+       - Use **bold** for component names and values.
+       - Use lists (bullet points) for multiple items.
+       - Use `code blocks` for technical terms like addresses (e.g., `0x8000`).
+    3. If the context is empty, say you don't know based on the data.
+    4. Keep the tone professional but helpful.
+
+    User Question: {question}
+    Answer:"""
+
+    QA_PROMPT = PromptTemplate(
+        input_variables=["context", "question"],
+        template=QA_PROMPT_TEMPLATE
+    )
+
     # 6. RUN CHAIN
     chain = GraphCypherQAChain.from_llm(
         llm=llm, 
         graph=graph, 
         verbose=False, 
-        cypher_prompt=PROMPT, 
+        cypher_prompt=PROMPT,
+        qa_prompt=QA_PROMPT, # <--- Added this
         allow_dangerous_requests=True,
         return_intermediate_steps=True 
     )

@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { formatMessageContent, parseText } from '../utils/formatResponse';
+import ReactMarkdown from 'react-markdown';
+import { formatMessageContent } from '../utils/formatResponse';
 import '../styles/MessageBubble.css';
 
 export default function MessageBubble({ message }) {
@@ -8,9 +9,6 @@ export default function MessageBubble({ message }) {
   
   // Format the content
   const { text, details } = formatMessageContent(message.content);
-  
-  // Parse text for simple formatting (code blocks)
-  const segments = parseText(text);
 
   return (
     <div className={`message-bubble-container ${isUser ? 'user' : 'assistant'}`}>
@@ -21,21 +19,8 @@ export default function MessageBubble({ message }) {
       )}
       
       <div className="message-content">
-        <div className="message-text">
-          {segments.map((segment, index) => {
-            if (segment.type === 'code') {
-              return (
-                <div key={index} className="code-block">
-                  <code>{segment.content}</code>
-                </div>
-              );
-            }
-            return (
-              <span key={index} style={{whiteSpace: 'pre-wrap'}}>
-                {segment.content}
-              </span>
-            );
-          })}
+        <div className="message-text markdown-content">
+          <ReactMarkdown>{text}</ReactMarkdown>
         </div>
 
         {details && (

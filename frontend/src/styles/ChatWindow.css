@@ -14,7 +14,8 @@
   background-color: var(--bg-secondary);
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  justify-content: flex-start;
+  gap: var(--spacing-md);
   height: 60px;
   flex-shrink: 0;
 }

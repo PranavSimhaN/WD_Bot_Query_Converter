@@ -35,6 +35,31 @@
   color: white;
 }
 
+/* Loading Avatar Spinner */
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.message-avatar.loading-avatar {
+  position: relative;
+  overflow: visible;
+}
+
+.message-avatar.loading-avatar::after {
+  content: '';
+  position: absolute;
+  top: -4px;
+  left: -4px;
+  right: -4px;
+  bottom: -4px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  border-top-color: var(--primary);
+  border-right-color: var(--primary);
+  animation: spin 1s linear infinite;
+}
+
 .message-content {
   max-width: 80%;
   padding: var(--spacing-md);
@@ -118,4 +143,44 @@
 .message-bubble-container.user .code-block {
   background-color: rgba(0,0,0,0.3);
   color: inherit;
+}
+
+/* Markdown Formatting Styles */
+.markdown-content p {
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content p:last-child {
+  margin-bottom: 0;
+}
+
+.markdown-content ul, .markdown-content ol {
+  margin-left: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.markdown-content li {
+  margin-bottom: 0.25rem;
+}
+
+.markdown-content strong {
+  font-weight: 600;
+  color: inherit;
+}
+
+.markdown-content code {
+  background-color: rgba(0, 0, 0, 0.1);
+  padding: 0.1em 0.3em;
+  border-radius: 3px;
+  font-family: 'Fira Code', monospace;
+  font-size: 0.9em;
+}
+
+.message-bubble-container.assistant .markdown-content code {
+   background-color: rgba(128, 128, 128, 0.15); /* Slightly visible in light mode */
+}
+
+/* Dark mode overrides if body has dark-mode class (usually handled by var(--bg-primary) but specific code bg needs help) */
+body.dark-mode .message-bubble-container.assistant .markdown-content code {
+   background-color: rgba(255, 255, 255, 0.15);
 }

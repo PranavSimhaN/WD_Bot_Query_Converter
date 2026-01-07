@@ -113,11 +113,16 @@ export default function ChatWindow({
         )}
         
         {loading && (
-          <div className="typing-indicator">
-            <div className="loading-dots">
-              <span></span>
-              <span></span>
-              <span></span>
+          <div className="message-bubble-container assistant">
+            <div className="message-avatar assistant loading-avatar">
+              AI
+            </div>
+            <div className="message-content">
+              <div className="loading-dots">
+                <span></span>
+                <span></span>
+                <span></span>
+              </div>
             </div>
           </div>
         )}
