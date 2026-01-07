@@ -132,6 +132,9 @@ export default function Sidebar({
 
         <div className="sidebar-footer">
           <p>KG-LLM Adapter</p>
+          <div className="company-branding">
+            <img src="/wd_logo.jpg" alt="Western Digital" className="company-logo" />
+          </div>
         </div>
       </div>
     </>

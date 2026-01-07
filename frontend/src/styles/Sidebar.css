@@ -110,6 +110,28 @@
   text-align: center;
 }
 
+.company-branding {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-sm);
+  margin-top: var(--spacing-md);
+  padding-top: var(--spacing-sm);
+  opacity: 0.8;
+}
+
+.company-logo {
+  height: 24px;
+  width: auto;
+  object-fit: contain;
+}
+
+.company-branding span {
+  font-weight: 600;
+  color: var(--text-sidebar);
+  font-size: 0.85rem;
+}
+
 /* Mobile responsive styles */
 @media (max-width: 768px) {
   .sidebar {
