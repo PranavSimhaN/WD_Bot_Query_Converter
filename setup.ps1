@@ -109,14 +109,45 @@ try {
 }
 
 # =============================================================================
-# STEP 2: Stop Existing Containers
+# STEP 2: Stop Existing Containers (including any using our ports)
 # =============================================================================
 Write-Step "Stopping any existing containers..."
 
 Set-Location $ScriptDir
-# Use Continue to allow warnings from docker-compose
 $ErrorActionPreference = "Continue"
+
+# First, stop this project's containers
 docker-compose down 2>$null
+
+# Stop any containers using our required ports (7474, 7687, 3001)
+# This handles conflicts with other projects
+$portsToCheck = @(7474, 7687, 3001)
+foreach ($port in $portsToCheck) {
+    # Find containers using this port
+    $containersUsingPort = docker ps -a --filter "publish=$port" --format "{{.ID}}" 2>$null
+    if ($containersUsingPort) {
+        foreach ($containerId in ($containersUsingPort -split "`n")) {
+            if ($containerId.Trim()) {
+                Write-Info "Stopping container using port ${port}: $containerId"
+                docker stop $containerId 2>$null
+                docker rm $containerId 2>$null
+            }
+        }
+    }
+}
+
+# Also check for any running containers with similar project names that might conflict
+$conflictingContainers = docker ps -a --format "{{.ID}} {{.Names}}" 2>$null | Select-String -Pattern "neo4j|backend" | ForEach-Object {
+    ($_ -split " ")[0]
+}
+foreach ($containerId in $conflictingContainers) {
+    if ($containerId.Trim()) {
+        Write-Info "Stopping potentially conflicting container: $containerId"
+        docker stop $containerId 2>$null
+        docker rm $containerId 2>$null
+    }
+}
+
 $ErrorActionPreference = "Stop"
 Write-Success "Container cleanup done"
 
@@ -127,25 +158,50 @@ Write-Step "Starting Docker containers (Neo4j + Backend)..."
 
 # Temporarily disable strict error handling for docker-compose
 $ErrorActionPreference = "Continue"
-docker-compose up -d 2>$null
+$composeOutput = docker-compose up -d 2>&1 | Out-String
 $composeExitCode = $LASTEXITCODE
 $ErrorActionPreference = "Stop"
 
 # Wait a moment for containers to start
-Start-Sleep -Seconds 3
+Start-Sleep -Seconds 5
 
-# Check if containers are running
+# Check if containers are running (not just created)
 $ErrorActionPreference = "Continue"
-$psOutput = docker-compose ps 2>$null | Out-String
+$runningContainers = docker-compose ps --status running 2>$null | Out-String
+$allContainers = docker-compose ps -a 2>$null | Out-String
 $ErrorActionPreference = "Stop"
 
-if ($psOutput -match "neo4j" -and $psOutput -match "backend") {
-    Write-Success "Docker containers started"
-} elseif ($composeExitCode -eq 0) {
-    Write-Success "Docker containers started"
+# Check for running status
+$neo4jRunning = $runningContainers -match "neo4j"
+$backendRunning = $runningContainers -match "backend"
+
+if ($neo4jRunning -and $backendRunning) {
+    Write-Success "Docker containers started and running"
+} elseif ($composeExitCode -eq 0 -and ($allContainers -match "neo4j" -or $allContainers -match "backend")) {
+    # Containers were created, may be starting - give more time
+    Write-Info "Containers starting, waiting for them to be ready..."
+    Start-Sleep -Seconds 5
+    
+    $ErrorActionPreference = "Continue"
+    $runningContainers = docker-compose ps --status running 2>$null | Out-String
+    $ErrorActionPreference = "Stop"
+    
+    if ($runningContainers -match "neo4j" -or $runningContainers -match "backend") {
+        Write-Success "Docker containers started"
+    } else {
+        Write-Warning "Some containers may not be running. Checking status..."
+        Write-Info "Container status:`n$allContainers"
+    }
 } else {
     Write-Error "Failed to start Docker containers."
-    Write-Info "Check docker-compose.yml and try: docker-compose logs"
+    Write-Info "Exit code: $composeExitCode"
+    Write-Info "Output: $composeOutput"
+    Write-Info "Container status:`n$allContainers"
+    Write-Info ""
+    Write-Info "Troubleshooting:"
+    Write-Info "  1. Check logs: docker-compose logs"
+    Write-Info "  2. Ensure ports 7474, 7687, 3001 are free: netstat -ano | findstr :7474"
+    Write-Info "  3. Try manual start: docker-compose up -d"
     exit 1
 }
 
@@ -203,7 +259,7 @@ $backendRetries = 20
 
 for ($i = 0; $i -lt $backendRetries; $i++) {
     try {
-        $response = Invoke-WebRequest -Uri "http://localhost:3001/health" -TimeoutSec 2 -ErrorAction SilentlyContinue
+        $response = Invoke-WebRequest -Uri "http://localhost:3001/_health" -TimeoutSec 2 -ErrorAction SilentlyContinue
         if ($response.StatusCode -eq 200) {
             $backendReady = $true
             Write-Success "Backend is ready!"
@@ -254,18 +310,37 @@ if (-not $SkipDataIngestion) {
     Write-Step "Ingesting data into Neo4j..."
     Write-Info "This may take a minute for large datasets..."
     
-    try {
-        Set-Location $ScriptDir
-        $ingestOutput = python ingest.py 2>&1
-        $ingestOutput | ForEach-Object { Write-Host $_ }
-        
-        if ($LASTEXITCODE -ne 0) { throw "Data ingestion failed" }
-        Write-Success "Data ingestion completed!"
-    } catch {
-        Write-Error "Data ingestion failed."
-        Write-Info "Error details: $_"
-        Write-Info "You can retry manually: python ingest.py"
-        # Continue anyway - data might already be loaded
+    # Retry logic for data ingestion (Neo4j may need extra time to be fully ready)
+    $maxRetries = 3
+    $retryDelay = 10
+    $ingestionSuccess = $false
+    
+    for ($attempt = 1; $attempt -le $maxRetries; $attempt++) {
+        try {
+            Write-Info "Attempt $attempt of $maxRetries..."
+            Set-Location $ScriptDir
+            $ingestOutput = python ingest.py 2>&1
+            $ingestOutput | ForEach-Object { Write-Host $_ }
+            
+            if ($LASTEXITCODE -eq 0) {
+                $ingestionSuccess = $true
+                Write-Success "Data ingestion completed!"
+                break
+            } else {
+                throw "Data ingestion exited with code $LASTEXITCODE"
+            }
+        } catch {
+            if ($attempt -lt $maxRetries) {
+                Write-Warning "Attempt $attempt failed. Retrying in ${retryDelay}s..."
+                Write-Info "Neo4j may still be initializing..."
+                Start-Sleep -Seconds $retryDelay
+            } else {
+                Write-Error "Data ingestion failed after $maxRetries attempts."
+                Write-Info "Error details: $_"
+                Write-Info "You can retry manually: python ingest.py"
+                Write-Info "Make sure Neo4j is fully ready: http://localhost:7474"
+            }
+        }
     }
 } else {
     Write-Warning "Skipping data ingestion (--SkipDataIngestion flag)"
