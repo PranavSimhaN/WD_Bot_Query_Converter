@@ -20,6 +20,13 @@ export default function ChatInput({ onSendMessage, disabled }) {
     }
   }, [input]);
 
+  // Restore focus when enabled
+  useEffect(() => {
+    if (!disabled && textareaRef.current) {
+      textareaRef.current.focus();
+    }
+  }, [disabled]);
+
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!input.trim() || disabled) return;
@@ -27,9 +34,10 @@ export default function ChatInput({ onSendMessage, disabled }) {
     onSendMessage(input);
     setInput('');
     
-    // Reset height
+    // Reset height and refocus textarea
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
+      textareaRef.current.focus();
     }
   };
 
