@@ -1,0 +1,36 @@
+CPU & Core Questions
+What is the CPU type of cpu0?
+How many CPUs are in the system?
+What is the cpuId of cpu1?
+Is cpu2 halted?
+How many MPU regions does cpu0 have?
+What is the nvic of cpu3?
+Memory Questions
+What is the size of itcm0?
+What is the address of itcm1?
+What is the size of program_flash?
+What is the size of sram?
+What is the address of quad_spi_flash?
+What is the size of quad_spi_flash?
+What is connected to sysbus?
+Peripheral Questions
+What is the frequency of lpuart1?
+What is the address of nvic0?
+What is the systickFrequency of nvic1?
+What is the address of dwt?
+What peripherals are on the sysbus?
+Relationship Questions
+What CPU is nvic0 connected to?
+What is itcm1 connected to?
+What components have size 0x8000?
+What has address 0xE000E000?
+What components use cortex-m7?
+Value/Property Questions
+What is the value of systickFrequency?
+What is the frequency of dwt?
+What components are halted?
+What is located at 0x11400000?
+What has cpuId 0?
+General Exploration
+List all memory components in the system
+What are the main components connected to sysbus?

@@ -29,7 +29,6 @@ export default function useChats() {
     } finally {
       setLoading(false);
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // Save chats to localStorage whenever they change

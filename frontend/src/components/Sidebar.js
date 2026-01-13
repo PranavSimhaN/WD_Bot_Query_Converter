@@ -1,5 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import '../styles/Sidebar.css';
+import ConfirmationModal from './ConfirmationModal';
 
 // Simple SVG icons
 const PlusIcon = () => (
@@ -62,6 +63,22 @@ export default function Sidebar({
   onToggleSidebar,
   isDesktopVisible = true // Default to true if not provided
 }) {
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [chatToDelete, setChatToDelete] = useState(null);
+
+  const handleDeleteClick = (e, chatId) => {
+    e.stopPropagation();
+    setChatToDelete(chatId);
+    setIsDeleteModalOpen(true);
+  };
+
+  const confirmDelete = () => {
+    if (chatToDelete) {
+      onDeleteChat(chatToDelete);
+      setChatToDelete(null);
+    }
+  };
+
   return (
     <>
       {/* Mobile Overlay */}
@@ -116,12 +133,7 @@ export default function Sidebar({
               </div>
               <button 
                 className="delete-btn" 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  if (window.confirm('Delete this chat?')) {
-                    onDeleteChat(chat.id);
-                  }
-                }}
+                onClick={(e) => handleDeleteClick(e, chat.id)}
                 title="Delete chat"
               >
                 <TrashIcon />
@@ -132,8 +144,19 @@ export default function Sidebar({
 
         <div className="sidebar-footer">
           <p>KG-LLM Adapter</p>
+          <div className="company-branding">
+            <img src="/wd_logo.jpg" alt="Western Digital" className="company-logo" />
+          </div>
         </div>
       </div>
+      
+      <ConfirmationModal 
+        isOpen={isDeleteModalOpen}
+        onClose={() => setIsDeleteModalOpen(false)}
+        onConfirm={confirmDelete}
+        title="Delete Chat?"
+        message="Are you sure you want to delete this chat? This action cannot be undone."
+      />
     </>
   );
 }

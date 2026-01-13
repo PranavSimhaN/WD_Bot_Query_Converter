@@ -1,0 +1,48 @@
+
+
+Thought for <1s
+
+No! The backend is already running inside Docker. 🐳
+
+When you run docker-compose up -d, it starts 2 containers:
+
+Container	What it runs	Port
+wd_project_2-neo4j-1	Neo4j database	7474, 7687
+wd_project_2-backend-1	Node.js + Python backend	3001
+The backend (
+server.js
+ + 
+query_engine.py
+) runs inside the Docker container, not on your host machine. That's why you only need to start the frontend manually.
+
+Summary - What YOU need to start:
+
+Component	How to start	Already running?
+Neo4j	docker-compose up -d	✅ Yes
+Backend	docker-compose up -d	✅ Yes
+Frontend	cd frontend && npm start	❌ Start this
+Just start the frontend and you're done! 🚀
+
+so how to stop these then
+
+Thought for <1s
+
+How to Stop Everything
+Component	How to Stop
+Docker containers (Neo4j + Backend)	docker-compose down
+Frontend	Press Ctrl+C in the terminal where it's running
+Commands:
+
+powershell
+# Stop Docker containers (Neo4j + Backend)
+docker-compose down
+# Or if you also want to delete the data volume (wipes Neo4j data)
+docker-compose down -v
+Quick Reference:
+
+Action	Command
+Start all containers	docker-compose up -d
+Stop all containers	docker-compose down
+View logs	docker-compose logs -f
+Restart	docker-compose restart
+Check status	docker-compose ps
